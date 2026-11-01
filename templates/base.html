@@ -1,0 +1,79 @@
+
+{% load static %}  {# Підключає шаблонний тег static, за допомогою якого Django формує адресу до CSS, JavaScript та інших статичних файлів #}
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}Weather App{% endblock %}</title>  {# Створює блок, який дочірні сторінки можуть перевизначати #}
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body>
+
+    <header class="site-header">
+        <div class="container header-content">
+
+            <a href="{% url 'home' %}" class="logo">
+                ☀️ Weather App
+            </a>
+
+            <nav class="navigation">
+                {% if user.is_authenticated %}  {# Перевіряє, чи користувач авторизований #}
+
+                    <span class="username">
+                        👤 {{ user.username }}
+                    </span>
+
+                    <a href="{% url 'home' %}">Головна</a>
+
+                    <a href="{% url 'history' %}">Історія</a>
+
+                    <form method="POST"
+                          action="{% url 'logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="logout-btn">
+                            Вийти
+                        </button>
+                    </form>
+
+                {% else %}
+
+                    <a href="{% url 'login' %}">Увійти</a>
+
+                    <a href="{% url 'register' %}">
+                        Реєстрація
+                    </a>
+
+                {% endif %}
+            </nav>
+
+        </div>
+    </header>
+
+    <main class="container main-content">
+
+        {% if messages %}        {# Дозволяє показувати повідомлення Django Messages #}
+            {% for message in messages %}
+                <div class="message">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}      {# Це місце, куди Django вставлятиме основний вміст конкретної сторінки #}
+        {% endblock %}
+
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>Weather App — Django Weather Project</p>
+        </div>
+    </footer>
+
+</body>
+</html>

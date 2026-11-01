@@ -1,0 +1,461 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+    Історія пошуків — Weather App
+{% endblock %}
+
+{% block content %}
+
+    <h1>Історія пошуку погоди</h1>
+
+    <p>Користувач: <strong>{{ user.username }}</strong></p>
+
+
+    <!-- Форма фільтрації історії -->
+    <form method="get" class="history-filter-form">
+
+        <div class="filter-grid">
+
+            <!-- Пошук за назвою міста -->
+            <div class="filter-field filter-city">
+                <label for="city">Місто</label>
+
+                <input
+                    type="text"
+                    id="city"
+                    name="city"
+                    value="{{ city_query }}"
+                    placeholder="Введіть назву міста"
+                >
+            </div>
+
+            <!-- Початкова дата -->
+            <div class="filter-field">
+                <label for="date_from">Дата від</label>
+
+                <input
+                    type="date"
+                    id="date_from"
+                    name="date_from"
+                    value="{{ date_from }}"
+                >
+            </div>
+
+            <!-- Кінцева дата -->
+            <div class="filter-field">
+                <label for="date_to">Дата до</label>
+
+                <input
+                    type="date"
+                    id="date_to"
+                    name="date_to"
+                    value="{{ date_to }}"
+                >
+            </div>
+
+            <!-- Сортування -->
+            <div class="filter-field">
+                <label for="sort">Сортування</label>
+
+                <select
+                    id="sort"
+                    name="sort"
+                    onchange="this.form.submit()"
+                >
+                    <option value="date_desc" {% if sort == "date_desc" %}selected{% endif %}>
+                        Дата — спочатку нові
+                    </option>
+
+                    <option value="date_asc" {% if sort == "date_asc" %}selected{% endif %}>
+                        Дата — спочатку старі
+                    </option>
+
+                    <option value="temp_asc" {% if sort == "temp_asc" %}selected{% endif %}>
+                        Температура — за зростанням
+                    </option>
+
+                    <option value="temp_desc" {% if sort == "temp_desc" %}selected{% endif %}>
+                        Температура — за спаданням
+                    </option>
+
+                    <option value="city_asc" {% if sort == "city_asc" %}selected{% endif %}>
+                        Місто — за алфавітом
+                    </option>
+                </select>
+            </div>
+
+            <!-- Кількість записів -->
+            <div class="filter-field">
+                <label for="per_page">Записів на сторінці</label>
+
+                <select
+                    id="per_page"
+                    name="per_page"
+                    onchange="this.form.submit()"
+                >
+                    <option value="5" {% if per_page == "5" %}selected{% endif %}>
+                        5 записів
+                    </option>
+
+                    <option value="10" {% if per_page == "10" %}selected{% endif %}>
+                        10 записів
+                    </option>
+
+                    <option value="20" {% if per_page == "20" %}selected{% endif %}>
+                        20 записів
+                    </option>
+
+                    <option value="50" {% if per_page == "50" %}selected{% endif %}>
+                        50 записів
+                    </option>
+                </select>
+            </div>
+
+        </div>
+
+        <!-- Кнопки фільтрації -->
+        <div class="filter-actions">
+
+            <button type="submit" class="filter-search-btn">
+                Знайти
+            </button>
+
+            <a href="{% url 'history' %}" class="filter-reset-btn">
+                Скинути
+            </a>
+
+        </div>
+
+    </form>
+
+    <!-- Експорт історії пошуку -->
+    <div class="export-actions">
+
+        <a href="?{{ filter_query }}&export=csv"
+           class="export-btn export-csv">
+            Експорт CSV
+        </a>
+
+        <a href="?{{ filter_query }}&export=xlsx"
+           class="export-btn export-excel">
+            Експорт Excel
+        </a>
+
+    </div>
+
+    {% if date_error %}
+        <div class="form-error">
+            {{ date_error }}
+        </div>
+    {% endif %}
+
+    {% if page_obj.object_list %} {# кнопка відображатиметься, лише якщо історія не порожня. #}
+
+        <form method="POST" {# надсилаємо запит на видалення. #}
+            action="{% url 'clear_history' %}"
+            onsubmit="return confirm('Ви впевнені, що хочете очистити всю історію пошуку?');"> {# браузер попросить підтвердити очищення історії. #}
+
+            {% csrf_token %} {# захист Django від підроблених запитів. #}
+
+            <button type="submit" class="clear-history-btn">
+                Очистити історію
+            </button>
+
+        </form>
+
+        <!-- Інформація про кількість знайдених записів -->
+        <div class="history-results-info">
+
+            <span>
+                Знайдено записів:
+                <strong>{{ page_obj.paginator.count }}</strong>
+            </span>
+
+            <span>
+                Показано
+                <strong>{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong>
+                із
+                <strong>{{ page_obj.paginator.count }}</strong>
+            </span>
+
+        </div>
+
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>Місто</th>
+                    <th>Температура</th>
+                    <th>Вологість</th>
+                    <th>Відчувається як</th>
+                    <th>Вітер</th>
+                    <th>Тиск</th>
+                    <th>Опис погоди</th>
+                    <th>Дата пошуку</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for search in page_obj %}
+                <tr>
+                    <td>{{ search.city }}</td>
+                    <td>{{ search.temperature|floatformat:1 }} °C</td>
+                    <td>{{ search.humidity|default_if_none:"—" }}%</td>
+                    <td>{{ search.feels_like|floatformat:1|default_if_none:"—" }} °C</td>
+                    <td>{{ search.wind_speed|floatformat:1|default_if_none:"—" }} м/с</td>
+                    <td>{{ search.pressure|default_if_none:"—" }} гПа</td>
+                    <td>{{ search.description }}</td>
+                    <td>{{ search.search_date|date:"d.m.Y H:i" }}</td>
+                    <td>
+                        <form method="POST"
+                            action="{% url 'delete_search' search.id %}"> {# автоматично створює адресу для видалення конкретного запису. #}
+
+                        {% csrf_token %}   {# захищає POST-запит від підроблення міжсайтових запитів (CSRF) #}
+
+                        <button type="submit" class="delete-button">
+                            Видалити
+                        </button>
+
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    <!-- Пагінація історії пошуку -->
+    {% if page_obj.has_other_pages %}
+
+        <div class="pagination">
+
+            <!-- Попередня сторінка -->
+            {% if page_obj.has_previous %}
+                <a href="?{{ filter_query }}&page={{ page_obj.previous_page_number }}">
+                    ← Попередня
+                </a>
+            {% endif %}
+
+            <!-- Номери сторінок -->
+            {% for num in page_obj.paginator.page_range %}
+
+                {% if page_obj.number == num %}
+                    <span class="pagination-current">
+                        {{ num }}
+                    </span>
+                {% else %}
+                    <a href="?{{ filter_query }}&page={{ num }}">
+                        {{ num }}
+                    </a>
+                {% endif %}
+
+            {% endfor %}
+
+            <!-- Наступна сторінка -->
+            {% if page_obj.has_next %}
+                <a href="?{{ filter_query }}&page={{ page_obj.next_page_number }}">
+                    Наступна →
+                </a>
+            {% endif %}
+
+        </div>
+
+    {% endif %}
+
+    {% if city_stats %}
+
+    <div class="stats-section">
+
+        <h2>Статистика пошуків за містами</h2>
+
+        <table class="stats-table">
+
+            <thead>
+                <tr>
+                    <th>Місто</th>
+                    <th>Кількість пошуків</th>
+                    <th>Середня температура</th>
+                    <th>Мінімальна температура</th>
+                    <th>Максимальна температура</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for stat in city_stats %}
+
+                <tr>
+                    <td>{{ stat.city }}</td>
+
+                    <td>{{ stat.search_count }}</td>
+
+                    <td>
+                        {{ stat.avg_temperature|floatformat:1 }} °C  {# температура відображатиметься з одним знаком після коми #}
+                    </td>
+
+                    <td>
+                        {{ stat.min_temperature|floatformat:1 }} °C
+                    </td>
+
+                    <td>
+                        {{ stat.max_temperature|floatformat:1 }} °C
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    {% endif %}
+
+    {% if city_stats %}
+
+    <div class="charts-section">
+
+        <div class="chart-card">
+            <h2>Кількість пошуків за містами</h2>
+
+            <div class="chart-container">
+                <canvas id="searchCountChart"></canvas>  {# це область HTML-сторінки, на якій JavaScript може малювати графіки. #}
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h2>Температура за містами</h2>
+
+            <div class="chart-container">
+                <canvas id="temperatureChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    {% endif %}
+
+    {% else %}
+
+        {% if not date_error %}
+
+            {% if city_query or date_from or date_to %}
+                <p>За вибраними параметрами записів не знайдено.</p>
+            {% else %}
+                <p>Ви ще не виконували пошук погоди.</p>
+            {% endif %}
+
+        {% endif %}
+
+    {% endif %}
+
+{{ chart_data|json_script:"weather-chart-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+
+<script>
+    // 1. Отримуємо дані, які Django передав у шаблон
+    const chartData = JSON.parse(
+        document.getElementById("weather-chart-data").textContent
+    );
+
+    // 2. Графік кількості пошуків за містами
+    const countCanvas = document.getElementById("searchCountChart");
+
+    if (countCanvas) {
+            new Chart(countCanvas, {
+                type: "bar",
+
+                data: {
+                    labels: chartData.cities,
+
+                    datasets: [{
+                        label: "Кількість пошуків",
+                        data: chartData.counts,
+                        backgroundColor: "#2563eb",
+                        borderRadius: 6
+                    }]
+                },
+
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            title: {
+                                display: true,
+                                text: "Кількість пошуків"
+                            }
+                        }
+                    },
+
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+    // 3. Графік температури за містами
+   const temperatureCanvas = document.getElementById("temperatureChart");
+
+    if (temperatureCanvas) {
+        new Chart(temperatureCanvas, {
+            type: "bar",
+
+            data: {
+                labels: chartData.cities,
+
+                datasets: [
+                    {
+                        label: "Середня температура",
+                        data: chartData.avg_temperatures,
+                        backgroundColor: "#2563eb",
+                        borderRadius: 5
+                    },
+                    {
+                        label: "Мінімальна температура",
+                        data: chartData.min_temperatures,
+                        backgroundColor: "#22c55e",
+                        borderRadius: 5
+                    },
+                    {
+                        label: "Максимальна температура",
+                        data: chartData.max_temperatures,
+                        backgroundColor: "#ef4444",
+                        borderRadius: 5
+                    }
+                ]
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: "Температура, °C"
+                        }
+                    }
+                },
+
+                plugins: {
+                    legend: {
+                        position: "bottom"
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+{% endblock %}

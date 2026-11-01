@@ -1,0 +1,62 @@
+
+{% extends "base.html" %} {# використовує наш загальний шаблон. #}
+
+{% block content %}
+
+<div class="auth-container">
+    <div class="auth-card">
+
+        <h1>Реєстрація</h1>
+
+        <p class="auth-description">
+            Створіть обліковий запис, щоб переглядати
+            погоду та зберігати історію пошуків.
+        </p>
+
+        <form method="POST">
+            {% csrf_token %}   {# захищає форму від CSRF-атак #}
+
+            {% if form.non_field_errors %}
+                <div class="form-error">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            {% for field in form %}  {# автоматично перебирає всі поля форми UserRegisterForm #}
+                <div class="form-group">
+
+                    <label for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                    </label>
+
+                    {{ field }}      {# створює HTML-поле введення #}
+
+                    {% for error in field.errors %} {# дозволяє показувати помилки окремого поля #}
+                        <div class="field-error">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+
+                    {% if field.help_text %}        {# показує підказки Django щодо паролів та інших полі #}
+                        <div class="field-help">
+                            {{ field.help_text }}
+                        </div>
+                    {% endif %}
+
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="auth-button">
+                Зареєструватися
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Уже маєте обліковий запис?
+            <a href="{% url 'login' %}">Увійти</a>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

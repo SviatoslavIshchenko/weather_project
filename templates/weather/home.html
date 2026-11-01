@@ -1,0 +1,95 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+    Головна — Weather App
+{% endblock %}
+
+{% block content %}
+
+<div class="weather-page">
+
+    <div class="weather-search-card">
+
+        <h1>Пошук погоди</h1>
+
+        <p class="weather-description">
+            Вітаємо, {{ user.username }}!
+            Введіть назву міста, щоб дізнатися актуальну погоду.
+        </p>
+
+        <form method="POST" class="weather-search-form">
+            {% csrf_token %}
+
+            <input
+                type="text"
+                name="city"
+                placeholder="Наприклад, Chernivtsi"
+                aria-label="Назва міста"
+                required
+            >
+
+            <button type="submit">
+                Знайти погоду
+            </button>
+        </form>
+
+        {% if error %}
+            <div class="form-error">
+                {{ error }}
+            </div>
+        {% endif %}
+
+    </div>
+
+    {% if weather %}
+
+        <div class="weather-result-card">
+
+            <h2>Погода у місті {{ weather.city }}</h2>
+
+            <div class="weather-temperature">
+                <img
+                    src="https://openweathermap.org/img/wn/{{ weather.icon }}@2x.png"
+                    alt="{{ weather.description }}"
+                    class="weather-icon"
+                >
+                <span>{{ weather.temperature }} °C</span>
+            </div>
+
+            <div class="weather-details">
+
+                <div class="weather-detail">
+                    <span>💧 Вологість</span>
+                    <strong>{{ weather.humidity }}%</strong>
+                </div>
+
+                <div class="weather-detail">
+                    <span>☁️ Опис погоди</span>
+                    <strong>{{ weather.description }}</strong>
+                </div>
+
+                <div class="weather-detail">
+                    <span>🌡️ Відчувається як</span>
+                    <strong>{{ weather.feels_like|floatformat:1 }} °C</strong>
+                </div>
+
+                <div class="weather-detail">
+                    <span>💨 Швидкість вітру</span>
+                    <strong>{{ weather.wind_speed }} м/с</strong>
+                </div>
+
+                <div class="weather-detail">
+                    <span>🌡️ Атмосферний тиск</span>
+                    <strong>{{ weather.pressure }} гПа</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

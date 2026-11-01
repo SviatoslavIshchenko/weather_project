@@ -27,6 +27,8 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
+OPENWEATHER_API_KEY = os.environ["OPENWEATHER_API_KEY"]
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -110,9 +112,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "uk"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "Europe/Kyiv"
 
 USE_I18N = True
 
@@ -124,12 +126,18 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+#Повідомляє Django, що наші CSS-файли розташовані в кореневій папці static.
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend" # під час розробки електронні листи виводитимуться в термінал, а не надсилатимуться реально
+
+LOGIN_URL = "/login/"              # Адреса сторінки входу
+LOGIN_REDIRECT_URL = "/"            # Куди перейти після успішної авторизації
+LOGOUT_REDIRECT_URL = "/login/"     # Куди перейти після виходу
